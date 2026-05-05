@@ -6,14 +6,16 @@ def create_user(username, password):
     password_hash = generate_password_hash(password)
 
     try:
-        conn.execute(
-            "INSERT INTO users (username, password_hash) VALUES (?, ?)",
-            (username, password_hash)
+        cursor = conn.cursor()
+        cursor.execute(
+            "INSERT INTO users (username, password_hash) VALUES (%s, %s)",
+            (username, password_hash),
         )
         conn.commit()
         return "User created successfully"
-    except:
-        return "Username already exists"
+    except Exception as error:
+        conn.rollback()
+        return f"user already exists or error occurred: {error}"
     finally:
         conn.close()
 
@@ -21,14 +23,18 @@ def create_user(username, password):
 def verify_user(username, password):
     conn = get_db()
 
-    user = conn.execute(
-        "SELECT * FROM users WHERE username = ?",
-        (username,)
-    ).fetchone()
+    try:
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT id, username, password_hash FROM users WHERE username = %s",
+            (username,),
+        )
+        user = cursor.fetchone()
 
-    conn.close()
-    if user and check_password_hash(user["password_hash"], password):
-        return user
-    
-    return None
+        if user and check_password_hash(user[2], password):
+            return user
+
+        return None
+    finally:
+        conn.close()
 

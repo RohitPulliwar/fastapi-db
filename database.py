@@ -1,8 +1,13 @@
-import sqlite3
+import psycopg2
 
-DATABASE = "database.db"
+
 
 def get_db():
-    conn = sqlite3.connect(DATABASE)
-    conn.row_factory = sqlite3.Row
+    conn = psycopg2.connect(
+    dbname="student_db",
+    user="postgres",
+    password="shilpamohan2425",
+    host="localhost",
+    port="5432"
+)
     return conn
