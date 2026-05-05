@@ -14,7 +14,7 @@ class User(BaseModel):
 
 @app.get("/")
 def home():
-    return {"message": "API running 🚀"}
+    return {"message": "API is running sucksexfully"}
 
 
 @app.post("/register")
@@ -29,4 +29,4 @@ def login(user: User):
     if db_user:
         return {"message": "Login successful"}
 
-    return {"message": "Invalid credentials"}
+    return {"message": "ille podde"}
