@@ -1,40 +1,38 @@
-from database import get_db
-from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.security import check_password_hash, generate_password_hash
 
-def create_user(username, password):
-    conn = get_db()
-    password_hash = generate_password_hash(password)
+from tables import DBUser
 
+
+def create_user(db, username, password, enrollment_number=None):
     try:
-        cursor = conn.cursor()
-        cursor.execute(
-            "INSERT INTO users (username, password_hash) VALUES (%s, %s)",
-            (username, password_hash),
+        existing_user = db.query(DBUser).filter(DBUser.username == username).first()
+
+        if enrollment_number:
+            existing_user = existing_user or db.query(DBUser).filter(
+                DBUser.enrollment_number == enrollment_number
+            ).first()
+
+        if existing_user:
+            return None
+
+        user = DBUser(
+            username=username,
+            enrollment_number=enrollment_number,
+            password_hash=generate_password_hash(password),
         )
-        conn.commit()
-        return "User created successfully"
-    except Exception as error:
-        conn.rollback()
-        return f"user already exists or error occurred: {error}"
-    finally:
-        conn.close()
-
-
-def verify_user(username, password):
-    conn = get_db()
-
-    try:
-        cursor = conn.cursor()
-        cursor.execute(
-            "SELECT id, username, password_hash FROM users WHERE username = %s",
-            (username,),
-        )
-        user = cursor.fetchone()
-
-        if user and check_password_hash(user[2], password):
-            return user
-
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+        return user
+    except Exception:
+        db.rollback()
         return None
-    finally:
-        conn.close()
 
+
+def verify_user(db, username, password):
+    user = db.query(DBUser).filter(DBUser.username == username).first()
+
+    if user and check_password_hash(user.password_hash, password):
+        return user
+
+    return None
